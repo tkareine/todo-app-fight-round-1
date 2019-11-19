@@ -1,0 +1,32 @@
+{
+  "name": "todo-app-fight-round-1",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "clean": "rm -fr build node_modules public/*.min.*",
+    "app:build": "webpack-cli",
+    "app:serve": "webpack-dev-server",
+    "slides:build": "mkdir -p build && marked --gfm -i slides.md > build/index.html",
+    "slides:publish": "git checkout master && git checkout -B tmp-gh-pages && npm run slides:build && git add -f build && git commit -m 'Generated slides' && git subtree split --prefix build -b gh-pages && git push -f origin gh-pages && git branch -D gh-pages && git checkout master"
+  },
+  "dependencies": {
+    "lodash.isequal": "^4.5.0",
+    "partial.lenses": "^14.17.0",
+    "prettier": "^1.18.2",
+    "react": "^16.12.0",
+    "react-dom": "^16.12.0",
+    "rxjs": "^6.5.3",
+    "uuid": "^3.3.3"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.7.4",
+    "@babel/preset-env": "^7.7.4",
+    "@babel/preset-react": "^7.7.4",
+    "babel-loader": "^8.0.6",
+    "marked": "^0.7.0",
+    "terser-webpack-plugin": "^2.2.1",
+    "webpack": "^4.41.2",
+    "webpack-cli": "^3.3.10",
+    "webpack-dev-server": "^3.9.0"
+  }
+}
