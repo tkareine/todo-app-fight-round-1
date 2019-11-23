@@ -7,7 +7,8 @@ const IsProdEnv = process.env.NODE_ENV === "production"
 
 module.exports = {
   entry: {
-    app: path.resolve(__dirname, "src/app.jsx")
+    app: path.resolve(__dirname, "src/app.jsx"),
+    demo: path.resolve(__dirname, "src/demo.jsx")
   },
   output: {
     path: path.resolve(__dirname, "public"),
