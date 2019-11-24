@@ -4,11 +4,13 @@ import {
   concat as rxConcat,
   defer as rxDefer,
   from as rxFrom,
+  fromEvent as rxFromEvent,
   merge as rxMerge,
   of as rxOf
 } from "rxjs"
 import {
   distinctUntilChanged as rxDistinctUntilChanged,
+  filter as rxFilter,
   map as rxMap,
   repeat as rxRepeat,
   scan as rxScan,
@@ -114,13 +116,45 @@ const serverSentTasksO = (() => {
   // rxTap(s => console.log("serverSentTasksO:", s)) // debugging only
 )
 
+const presetTaskO = (() => {
+  const tasks = freezeDeep(
+    Object.fromEntries(
+      [
+        [1, "Drink water"],
+        [2, "Wait for TODO App Fight Round 2"],
+        [3, "Wait for TODO App Fight Round 3"]
+      ].map(([c, n]) => [
+        c,
+        {
+          id: uuid(),
+          name: n,
+          isDone: false
+        }
+      ])
+    )
+  )
+
+  return rxFromEvent(document, "keydown").pipe(
+    rxFilter(e => e.ctrlKey && tasks.hasOwnProperty(e.key)),
+    rxMap(e => tasks[e.key]),
+    rxMap(({ id, name, isDone }) => ({
+      type: "presetTask",
+      id,
+      name,
+      isDone,
+      updateModel: m => L.assign("tasks", { [id]: { name, isDone } }, m)
+    }))
+    // rxTap(s => console.log("presetTaskO:", s))
+  )
+})()
+
 // A subject (a special observable that allows publishing) of
 // user-initiated actions.
 const actionS = new RxSubject()
 
 // The observable of app state events. The receival of such an event
 // means that the app state changed.
-const stateO = rxConcat(initO, rxMerge(actionS, serverSentTasksO)).pipe(
+const stateO = rxConcat(initO, rxMerge(actionS, serverSentTasksO, presetTaskO)).pipe(
   rxScan(({ model }, event) => Object.freeze({ model: event.updateModel(model), lastEvent: event })),
   rxDistinctUntilChanged((a, b) => isEqual(a.model, b.model)),
   rxTap(s => console.log("stateO:", s)) // debugging only
