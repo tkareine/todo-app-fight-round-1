@@ -1,11 +1,18 @@
+// Used for app state management.
+import { of as rxOf, concat as rxConcat, Subject as RxSubject } from "rxjs"
+import { distinctUntilChanged as rxDistinctUntilChanged, scan as rxScan, tap as rxTap } from "rxjs/operators"
+
 // Used for rendering the app state, and for handling minor component
 // local state.
-import React, { useState, useReducer } from "react"
+import React, { useState } from "react"
 import ReactDOM from "react-dom"
 
 // The app state is immutable, we'll use partial.lenses to update
 // selected parts of it, in order to return new app state.
 import * as L from "partial.lenses"
+
+// Only used to check that two consecutive app states are different.
+import isEqual from "lodash.isequal"
 
 // We'll use UUIDv4 as task identifiers; this allows the frontend to
 // detect if it already has the task it received from the backend.
@@ -22,45 +29,81 @@ const freezeDeep = obj => {
   return Object.freeze(obj)
 }
 
-const startState = freezeDeep({
-  lastEvent: null,
-  model: {
-    taskFilterText: "",
-    tasks: Object.fromEntries(
-      [
-        "Buy milk",
-        "Change winter tires",
-        "Plough snow",
-        "Go watch starry night sky",
-        "Think about life and death"
-      ].map(name => [uuid(), { isDone: false, name }])
-    )
-  }
-})
+// An observable of a single event, the immutable starting point of the
+// app state.
+const initO = rxOf(
+  freezeDeep({
+    lastEvent: null,
+    model: {
+      taskFilterText: "",
+      tasks: Object.fromEntries(
+        [
+          "Buy milk",
+          "Change winter tires",
+          "Plough snow",
+          "Go watch starry night sky",
+          "Think about life and death"
+        ].map(name => [uuid(), { isDone: false, name }])
+      )
+    }
+  })
+)
 
-const stateReducer = (() => {
+// A subject (a special observable that allows publishing) of
+// user-initiated actions.
+const actionS = new RxSubject()
+
+// The observable of app state events. The receival of such an event
+// means that the app state changed.
+const stateO = rxConcat(initO, actionS).pipe(
+  rxScan(({ model }, event) => Object.freeze({ model: event.updateModel(model), lastEvent: event })),
+  rxDistinctUntilChanged((a, b) => isEqual(a.model, b.model)),
+  rxTap(s => console.log("stateO:", s)) // debugging only
+)
+
+// The dispatch logic of user-initiated actions. The methods of the
+// returned object will be passed as props to the React components.
+//
+// Alternatively, you could remove the controller and relocate each
+// method implementation inside the appropriate React component, passing
+// just the `actionS` subject to all the components. But I think that
+// would make the React components to have too much responsibility.
+//
+// The downside of the controller approach is that it puts all action
+// implementations into a single location.
+const controller = (() => {
   const taskL = id => ["tasks", id]
 
-  const updateModel = (action, m) => {
-    switch (action.type) {
-      case "filterTasksBy":
-        return L.set(["taskFilterText"], action.text.trim().toLowerCase(), m)
-      case "markTaskDone":
-        return L.set([taskL(action.id), "isDone"], action.isDone, m)
-      case "deleteTask":
-        return L.remove(taskL(action.id), m)
-      case "addTask":
-        return L.assign("tasks", { [uuid()]: { isDone: false, name: action.name } }, m)
-      default:
-        throw new Error("unknown action type: " + action.type)
+  return {
+    filterTasksBy: text => {
+      actionS.next({
+        type: "filterTasksBy",
+        text,
+        updateModel: m => L.set("taskFilterText", text.trim().toLowerCase(), m)
+      })
+    },
+    markTaskDone: (id, isDone) => {
+      actionS.next({
+        type: "markTaskDone",
+        id,
+        isDone,
+        updateModel: m => L.set([taskL(id), "isDone"], isDone, m)
+      })
+    },
+    addTask: name => {
+      actionS.next({
+        type: "addTask",
+        name,
+        updateModel: m => L.assign("tasks", { [uuid()]: { isDone: false, name } }, m)
+      })
+    },
+    deleteTask: id => {
+      actionS.next({
+        type: "deleteTask",
+        id,
+        updateModel: m => L.remove(taskL(id), m)
+      })
     }
-  }
-
-  return (state, action) => {
-    const s1 = L.set("lastEvent", action, state)
-    const s2 = L.modify("model", updateModel.bind(undefined, action), s1)
-    console.log("reduced state:", s2) // debugging only
-    return s2
   }
 })()
 
@@ -126,40 +169,24 @@ const AddTaskField = ({ addTask }) => {
   )
 }
 
-const App = ({ startState, stateReducer }) => {
-  const [state, dispatch] = useReducer(stateReducer, startState)
-
-  const filterTasksBy = text => {
-    dispatch({ type: "filterTasksBy", text })
-  }
-
-  const markTaskDone = (id, isDone) => {
-    dispatch({ type: "markTaskDone", id, isDone })
-  }
-
-  const deleteTask = id => {
-    dispatch({ type: "deleteTask", id })
-  }
-
-  const addTask = name => {
-    dispatch({ type: "addTask", name })
-  }
-
-  const filteredTasks = Object.entries(state.model.tasks).filter(([_, t]) =>
-    t.name.toLowerCase().includes(state.model.taskFilterText)
+const App = ({ model, controller }) => {
+  const filteredTasks = Object.entries(model.tasks).filter(([_, t]) =>
+    t.name.toLowerCase().includes(model.taskFilterText)
   )
-
-  console.log("render state:", state) // debugging only
 
   return (
     <div className="app">
-      <SearchTaskField filterTasksBy={filterTasksBy} value={state.model.taskFilterText} />
+      <SearchTaskField filterTasksBy={controller.filterTasksBy} value={model.taskFilterText} />
       <div>Found {filteredTasks.length} tasks</div>
-      <TaskList tasks={filteredTasks} deleteTask={deleteTask} markTaskDone={markTaskDone} />
-      <AddTaskField addTask={addTask} />
+      <TaskList tasks={filteredTasks} deleteTask={controller.deleteTask} markTaskDone={controller.markTaskDone} />
+      <AddTaskField addTask={controller.addTask} />
     </div>
   )
 }
 
 const rootEl = document.getElementById("root")
-ReactDOM.render(<App startState={startState} stateReducer={stateReducer} />, rootEl)
+
+stateO.subscribe(({ model }) => {
+  console.log("render model:", model) // debugging only
+  ReactDOM.render(<App model={model} controller={controller} />, rootEl)
+})
