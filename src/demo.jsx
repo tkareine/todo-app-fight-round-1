@@ -1,6 +1,19 @@
 // Used for app state management.
-import { of as rxOf, concat as rxConcat, Subject as RxSubject } from "rxjs"
-import { distinctUntilChanged as rxDistinctUntilChanged, scan as rxScan, tap as rxTap } from "rxjs/operators"
+import {
+  Subject as RxSubject,
+  concat as rxConcat,
+  defer as rxDefer,
+  from as rxFrom,
+  merge as rxMerge,
+  of as rxOf
+} from "rxjs"
+import {
+  distinctUntilChanged as rxDistinctUntilChanged,
+  map as rxMap,
+  repeat as rxRepeat,
+  scan as rxScan,
+  tap as rxTap
+} from "rxjs/operators"
 
 // Used for rendering the app state, and for handling minor component
 // local state.
@@ -49,13 +62,65 @@ const initO = rxOf(
   })
 )
 
+// An observable of tasks, simulated to be received from the backend at
+// random.
+const serverSentTasksO = (() => {
+  const tasks = freezeDeep(
+    [
+      "Write a TODO app",
+      "Do something else",
+      "Go outside",
+      "Play",
+      "Go jogging",
+      "Wait for better Star Trek series"
+    ].map(n => ({
+      id: uuid(),
+      name: n,
+      isDone: false
+    }))
+  )
+
+  const pickMax = n => Math.floor(Math.random() * n)
+
+  const sampleTasks = () => {
+    const numTasks = pickMax(3)
+    const ts = []
+    for (let i = 0; i < numTasks; i += 1) {
+      ts.push(tasks[pickMax(tasks.length)])
+    }
+    return Object.freeze(ts)
+  }
+
+  const randomDelay = () => Math.random() * 10000 + 5000
+
+  const timeoutP = (fn, ms) =>
+    new Promise(resolve => {
+      setTimeout(() => resolve(fn()), ms)
+    })
+
+  // Lazily create an Observable (here, one from a timeout Promise), repeat
+  return rxDefer(() => rxFrom(timeoutP(sampleTasks, randomDelay()))).pipe(rxRepeat())
+})().pipe(
+  rxMap(ts => ({
+    type: "serverSentTasks",
+    tasks: ts,
+    updateModel: m => {
+      const newTasks = Object.fromEntries(
+        ts.filter(({ id }) => m.tasks[id] == null).map(({ id, name, isDone }) => [id, { name, isDone }])
+      )
+      return L.assign("tasks", newTasks, m)
+    }
+  }))
+  // rxTap(s => console.log("serverSentTasksO:", s)) // debugging only
+)
+
 // A subject (a special observable that allows publishing) of
 // user-initiated actions.
 const actionS = new RxSubject()
 
 // The observable of app state events. The receival of such an event
 // means that the app state changed.
-const stateO = rxConcat(initO, actionS).pipe(
+const stateO = rxConcat(initO, rxMerge(actionS, serverSentTasksO)).pipe(
   rxScan(({ model }, event) => Object.freeze({ model: event.updateModel(model), lastEvent: event })),
   rxDistinctUntilChanged((a, b) => isEqual(a.model, b.model)),
   rxTap(s => console.log("stateO:", s)) // debugging only
