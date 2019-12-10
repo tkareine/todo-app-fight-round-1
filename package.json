@@ -3,9 +3,10 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "clean": "rm -fr build node_modules public/*.min.*",
     "app:build": "webpack-cli",
     "app:serve": "webpack-dev-server",
+    "clean": "rm -fr build public/*.min.*",
+    "clobber": "npm run clean && rm -fr node_modules",
     "slides:build": "mkdir -p build && marked --gfm -i slides.md > build/index.html",
     "slides:publish": "git checkout master && git checkout -B tmp-gh-pages && npm run slides:build && git add -f build && git commit -m 'Generated slides' && git subtree split --prefix build -b gh-pages && git push -f origin gh-pages && git branch -D gh-pages && git checkout master"
   },
