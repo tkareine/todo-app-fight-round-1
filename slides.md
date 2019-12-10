@@ -256,11 +256,10 @@ välttämätön, jottei `actionS` (Subject) välity React-komponenteille
 [Immer]: https://github.com/immerjs/immer
 [RxJS Observables]: https://rxjs-dev.firebaseapp.com/guide/observable
 [RxJS]: https://rxjs-dev.firebaseapp.com/
+[hackers-tiny-slide-deck]: https://github.com/tkareine/hackers-tiny-slide-deck
 [partial.lenses]: https://github.com/calmm-js/partial.lenses
 [todo-app-fight-round-1-online-demo]: https://codesandbox.io/s/wonderful-waterfall-rb89g
-[hackers-tiny-slide-deck]: https://github.com/tkareine/hackers-tiny-slide-deck
 
-<link rel="stylesheet" media="screen" href="https://tkareine.github.io/hackers-tiny-slide-deck/htsd.min.css" />
 <style type="text/css" media="screen">
 @import url(https://fonts.googleapis.com/css?family=Roboto:400,400i,700|Roboto+Mono:400,700);
 :root {
@@ -273,5 +272,5 @@ välttämätön, jottei `actionS` (Subject) välity React-komponenteille
   opacity: 0.7;
 }
 </style>
-<script type="text/javascript" src="https://tkareine.github.io/hackers-tiny-slide-deck/htsd.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/hackers-tiny-slide-deck@0.1.0/build/htsd.min.js"></script>
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/prism.min.js"></script>
