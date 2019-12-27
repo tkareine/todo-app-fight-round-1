@@ -1,0 +1,199 @@
+<h1 id="todo-app-fight">TODO App Fight</h1>
+<h2 id="round-1">Round 1</h2>
+<p>React, RxJS, partial.lenses</p>
+<p><em>25th Nov 2019</em></p>
+<hr>
+<h1 id="todo-appistappelu">TODO-appistappelu</h1>
+<h2 id="kierros-1">Kierros 1</h2>
+<p>React, RxJS, partial.lenses</p>
+<p>Eli kuinka hallita tilaa RxJS:llä ja käyttää Reactia vain tilan renderöintiin*</p>
+<p>(* React-komponentti voi silti hyödyntää paikallista tilaa)</p>
+<p><em>25.11.2019</em></p>
+<hr>
+<h2 id="millainen-on-todo-appis">Millainen on TODO-appis?</h2>
+<p><em>(demo)</em></p>
+<hr>
+<h2 id="immutable-tilapuu-motivaatio">Immutable-tilapuu, motivaatio</h2>
+<p>Esitämme sovelluksen tilan puumaisena rakenteena (tilapuu), jonka
+juurena on objekti.</p>
+<p>Haluamme tilapuun olevan immutable, jotta sen päivitys tapahtuu aina
+eksplisiittisesti:</p>
+<p><code>fn(oldState) =&gt; newState</code></p>
+<p>Tämä helpottaa ohjelman logiikan seuraamista ja vähentää bugeja.</p>
+<p>Välitämme React-komponenteille vain tarvittavat osat tilapuusta.</p>
+<p>Mikään React-komponentti ei voi mutatoida saamaansa tilapuun osaa.</p>
+<hr>
+<h2 id="immutable-tilapuu-toteutus">Immutable-tilapuu, toteutus</h2>
+<p>Mahdollistamme tämän seuraavasti:</p>
+<ul>
+<li><p>Käytämme JavaScriptin natiivia Arrayta ja Objektia</p>
+<ul>
+<li>Kaikille tuttu API</li>
+<li>Helppo syntaksi (literaalit)</li>
+</ul>
+</li>
+<li><p><code>Object.freeze</code> ja <code>freezeDeep</code> estävät mutatoinnin</p>
+</li>
+<li><p>Päivitämme puun osia <a href="https://github.com/calmm-js/partial.lenses">partial.lenses</a>-kirjastolla</p>
+<ul>
+<li>Vaihtoehto: <a href="https://github.com/immerjs/immer">Immer</a></li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="partiallenses">partial.lenses</h2>
+<p><a href="https://github.com/calmm-js/partial.lenses">partial.lenses</a> on lens-abstraktiota käyttävä kirjasto, jolla voi hakea
+ja päivittää osia immutable-tietorakenteista, tuottaen niistä uusia
+versioita.</p>
+<p>Kirjasto erottelee datan osoituksen (lenses) datan muuttamisesta.</p>
+<p>Arvon päivitys objektiin:</p>
+<pre><code class="language-javascript">const m = {a: {b: 1}, c: 2}
+L.set([&quot;a&quot;, &quot;b&quot;], 3, m) // =&gt; {a: {b: 3}, c: 2}</code></pre>
+<p>Objektien yhdistäminen:</p>
+<pre><code class="language-javascript">const m = {a: {b: 1}}
+L.assign(&quot;a&quot;, {c: 2}, m) // =&gt; {a: {b: 1, c: 2}}</code></pre>
+<hr>
+<h2 id="valittu-tilapuu">Valittu tilapuu</h2>
+<pre><code class="language-javascript">{
+  // the last event triggering a change to the state; for self-inspection
+  lastEvent: {
+    type: string,
+    // plus event data, such as task id; depends on event type
+  },
+  // data model, to be consumed by React components
+  model: {
+    taskFilterText: string,
+    tasks: [
+      {id: uuid, isDone: boolean, name: string}
+      // ...
+    ]
+  }
+}</code></pre>
+<hr>
+<h2 id="react-komponenttihierarkia">React, komponenttihierarkia</h2>
+<pre><code>App
+|
++- SearchTaskField
+|
++- TaskList
+|  |
+|  +- Task
+|  +- Task
+|  `- Task
+|
+`- AddTaskField</code></pre><hr>
+<h2 id="react-tilanhallinta">React, tilanhallinta</h2>
+<p>Määritellään alkutila (<code>startState</code>, <code>useReducer</code>).</p>
+<p>Tila välitetään propseina React-komponenteille.</p>
+<p>Komponenteilla voi olla oma sisäinen tila, esimerkiksi tallentamaan
+input-elementin teksti (<code>useState</code> <code>SearchTaskField</code>-komponentissa).</p>
+<p>Tila ja komponentit päivittyvät Reactin hallinnoimista DOM-tapahtumista
+(<code>click</code>, <code>keydown</code>; <em>React controlled component</em>).</p>
+<p><em>(demo)</em></p>
+<p>Kuinka päivittää komponentti DOM:n ulkopuolelta?</p>
+<p><code>App</code>-komponentti renderöityy, vaikka normalisoitu hakuteksti ei muutu.</p>
+<hr>
+<h2 id="rxjs">RxJS</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Single</th>
+<th>Multiple</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Pull</strong></td>
+<td>function</td>
+<td>Iterator</td>
+</tr>
+<tr>
+<td><strong>Push</strong></td>
+<td>Promise</td>
+<td>Observable</td>
+</tr>
+</tbody></table>
+<p><strong>Observable</strong>: producer of many values (events), pushes them to
+<strong>Observers</strong> (subscribers).</p>
+<p>Each Observer gets an independent execution of the Observable subscribed
+to (unicast).</p>
+<p><strong>Subject</strong>: special Observable that allows shared execution to many
+Observers (multicast). Like pub-sub.</p>
+<hr>
+<h2 id="rxjs-ja-react">RxJS ja React</h2>
+<p>Tilaa hallitaan RxJS:llä, Reactilla renderöidään tila.</p>
+<p><em>(demo)</em></p>
+<hr>
+<h1 id="miksi-tämä-kaikki">Miksi tämä kaikki?</h1>
+<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/Q_7KaMDHoGs?start=176" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+<p><em>(Palpatinen ähkäisy lopussa johtuu mahdollisen konffauksen määrästä.)</em></p>
+<hr>
+<h2 id="ratkaisun-hyödyt">Ratkaisun hyödyt</h2>
+<p>Sovellusten rakentaminen kirjastoilla, jotka sopivat hyvin yhteen, antaa
+paljon joustavuutta suunnitteluun.</p>
+<p>Vertaa sovelluskehyksen käyttöön, jossa päätökset on jo tehty
+puolestasi. Sopiiko sovelluskehys ongelmaasi, tunnetko edes ongelmaa
+hyvin projektin alussa?</p>
+<p>Mahdollistaa kirjastojen vaihtamisen, jos kirjastojen paradigma on
+suunnilleen samanlainen. Esimerkiksi:</p>
+<ul>
+<li><a href="https://rxjs-dev.firebaseapp.com/">RxJS</a>:n voi korvata <a href="https://baconjs.github.io/">Bacon.js</a>:llä</li>
+<li><a href="https://github.com/calmm-js/partial.lenses">partial.lenses</a>-kirjaston voi korvata <a href="https://github.com/immerjs/immer">Immer</a>:llä tai tavallisella JS:llä</li>
+</ul>
+<p><em>Tilanhallinta on aina eksplisiittistä. Sinä olet ohjaksissa!</em></p>
+<hr>
+<h2 id="ratkaisun-hyödyt-1">Ratkaisun hyödyt</h2>
+<p>React-komponenttien koodi on intuitiivista.</p>
+<blockquote>
+<p>&quot;Great programmers write baby code&quot;</p>
+</blockquote>
+<p>&ndash; Eric Meijer, Principles of Reactive Programming -verkkokurssi</p>
+<hr>
+<h2 id="kokemuksia-rxjsstä">Kokemuksia RxJS:stä</h2>
+<p>Deklaratiivinen API on aluksi hankala käyttää:</p>
+<ul>
+<li>Vaatii erilaisen tavan ajatella ratkaisuja</li>
+<li>Tutustumisen jälkeen API toimii odotetusti</li>
+</ul>
+<p>Soveltuu erityisen hyvin async-tapahtumien hallintaan.</p>
+<p>Mahdolliset bugit johtuvat väärästä tavasta mallintaa tapahtumia
+(events).</p>
+<p>RxJS on ollut olemassa useita vuosia. Vakaa ja suorituskykyinen.</p>
+<hr>
+<h2 id="ratkaisun-haitat">Ratkaisun haitat</h2>
+<p>Vaatii jonkin verran boilerplate-koodia, mikä voi aluksi turhauttaa.</p>
+<p>Takaisinmaksu tulee toteuttaessa sovelluksia, joissa vaaditaan
+monimutkaista tilanhallintaa.</p>
+<p>Tilanhallinnan yhdistävä Observable (<code>stateO</code>) sijoittuu sovelluksen
+ylimmälle tasolle.</p>
+<p>Demon <code>controller</code>-abstraktio on hieman kömpelö, mutta mielestäni
+välttämätön, jottei <code>actionS</code> (Subject) välity React-komponenteille
+(liikaa valtaa).</p>
+<hr>
+<h2 id="lue-ja-tutki-lisää">Lue ja tutki lisää</h2>
+<ul>
+<li>Kuvaus RxJS:n <a href="https://rxjs-dev.firebaseapp.com/guide/observable">Observable</a>-abstraktiosta</li>
+<li>Immutable-tietorakenteiden päivitys: <a href="https://github.com/calmm-js/partial.lenses">partial.lenses</a> tai <a href="https://github.com/immerjs/immer">Immer</a></li>
+<li>Demon <a href="https://codesandbox.io/s/wonderful-waterfall-rb89g">online-versio</a></li>
+</ul>
+<div class="footnote">
+
+<p>(Esitys toteutettu <a href="https://github.com/tkareine/hackers-tiny-slide-deck">Hacker&#39;s Tiny Slide Deckillä</a>.)</p>
+</div>
+
+<style type="text/css" media="screen">
+@import url(https://fonts.googleapis.com/css?family=Roboto:400,400i,700|Roboto+Mono:400,700);
+:root {
+  --htsd-sans-font-family: 'Roboto', sans-serif;
+  --htsd-mono-font-family: 'Roboto Mono', monospace;
+}
+.htsd-slide .footnote {
+  margin-top: 10rem;
+  font-size: 70%;
+  opacity: 0.7;
+}
+</style>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/hackers-tiny-slide-deck@0.1.2/build/htsd.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/prism.min.js"></script>
+
