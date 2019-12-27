@@ -272,5 +272,5 @@ välttämätön, jottei `actionS` (Subject) välity React-komponenteille
   opacity: 0.7;
 }
 </style>
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/hackers-tiny-slide-deck@0.1.0/build/htsd.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/hackers-tiny-slide-deck@0.1.2/build/htsd.min.js"></script>
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/prism.min.js"></script>
